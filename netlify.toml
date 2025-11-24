@@ -1,0 +1,17 @@
+# Basic configuration for Netlify.
+# Since this is a simple static HTML file, no build command is strictly necessary, 
+# but defining the publish directory ensures Netlify knows where to look.
+
+[build]
+  publish = "/"
+  # The build command is optional for a pure HTML/JS file, but can be set to echo 
+  # for compatibility with Netlify's build process.
+  command = "echo 'No build required'"
+
+# Optional: Add a redirect rule if you want to enforce HTTPS or redirect paths.
+# Example: enforce HTTPS (default for Netlify)
+[[redirects]]
+  from = "http://*"
+  to = "https://:host/:splat"
+  status = 301
+  force = true
