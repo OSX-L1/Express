@@ -1,0 +1,491 @@
+index.html:
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>โปรแกรมสร้างใบปะหน้าจัดส่งสินค้า</title>
+    <!-- โหลด Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- โหลดฟอนต์ Sarabun (หรือที่รู้จักกันในชื่อ Saraban-TH) จาก Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* กำหนดให้ใช้ฟอนต์ Sarabun ทั่วทั้งแอปพลิเคชัน */
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #f3f4f6;
+        }
+        /* กำหนดสไตล์สำหรับเอกสารที่สั่งพิมพ์ (ใบปะหน้า) */
+        @media print {
+            body * {
+                visibility: hidden; /* ซ่อนทุกอย่างใน body เมื่อสั่งพิมพ์ */
+            }
+            #print-area, #print-area * {
+                visibility: visible; /* ยกเว้นส่วนของใบปะหน้า */
+            }
+            #print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                /* กำหนดขนาดกระดาษ A5 (148mm x 210mm) หรือ A6 เพื่อให้เหมาะกับใบปะหน้าเล็กๆ */
+                max-width: 100%;
+                min-height: 200mm; 
+                padding: 1cm;
+                box-sizing: border-box;
+                margin: 0;
+                color: #000;
+                background-color: #fff;
+            }
+            /* ซ่อนปุ่มในส่วนพิมพ์ */
+            #print-area button {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 min-h-screen">
+
+    <div class="max-w-4xl mx-auto bg-white shadow-xl rounded-xl p-6 md:p-10">
+        <h1 class="text-3xl font-bold text-center text-indigo-700 mb-8">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            สร้างใบปะหน้าจัดส่งสินค้าอัตโนมัติ
+        </h1>
+
+        <!-- ส่วนจัดการฐานข้อมูลที่อยู่ (อัปโหลด CSV) -->
+        <div class="mb-8 p-4 bg-yellow-50 rounded-lg border border-yellow-300">
+            <h2 class="text-lg font-semibold text-yellow-800 mb-2 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L10 11.586l1.293-1.293a1 1 0 111.414 1.414l-2 2a1 1 0 01-1.414 0l-2-2a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+                อัปโหลดฐานข้อมูลรหัสไปรษณีย์ (CSV)
+            </h2>
+            <p class="text-sm text-yellow-700 mb-3">
+                ฐานข้อมูลเริ่มต้นถูกฝังในโค้ดแล้ว (รองรับการเลือกแขวง/ตำบลจากรหัสไปรษณีย์) คุณสามารถอัปโหลดไฟล์ CSV (รูปแบบ: `จังหวัด, อำเภอ, ตำบล, รหัสไปรษณีย์, ...`) เพื่อเพิ่มข้อมูล 7,000 รายการของคุณ
+            </p>
+            <input type="file" id="csvFile" accept=".csv" class="w-full p-2 border border-yellow-400 rounded-lg bg-white" onchange="handleFileUpload(event)">
+            <p id="dataStatus" class="mt-2 text-sm font-medium text-green-600">สถานะ: ฐานข้อมูลที่อยู่ฝังในโค้ดแล้ว (6 รหัสไปรษณีย์) - อัปโหลดใหม่เพื่อเพิ่ม</p>
+        </div>
+
+        <form id="labelForm" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- ส่วนผู้ส่ง (Sender) -->
+            <div class="p-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <span class="mr-2 text-indigo-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                    </span>
+                    ข้อมูลผู้ส่ง (Sender)
+                </h2>
+                <div class="space-y-4">
+                    <input type="text" id="senderName" placeholder="ชื่อ-นามสกุล ผู้ส่ง" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                    <textarea id="senderAddress1" placeholder="ที่อยู่ (บ้านเลขที่, ถนน)" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                    
+                    <input type="text" id="senderZipcode" placeholder="รหัสไปรษณีย์ (เช่น 10200)" maxlength="5" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" oninput="lookupAddress('sender')">
+                    
+                    <!-- ส่วนที่จะเป็น Dropdown หรือ Input ธรรมดา สำหรับ แขวง/ตำบล -->
+                    <div id="senderDistrictContainer" class="w-full">
+                        <input type="text" id="senderDistrict" placeholder="แขวง/ตำบล" required class="w-full p-3 border border-gray-300 rounded-lg bg-gray-100" readonly>
+                    </div>
+                    
+                    <input type="text" id="senderAmphoe" placeholder="เขต/อำเภอ" required class="w-full p-3 border border-gray-300 rounded-lg bg-gray-100" readonly>
+                    <input type="text" id="senderProvince" placeholder="จังหวัด" required class="w-full p-3 border border-gray-300 rounded-lg bg-gray-100" readonly>
+                    <input type="tel" id="senderPhone" placeholder="เบอร์โทรศัพท์ (ถ้ามี)" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+            </div>
+
+            <!-- ส่วนผู้รับ (Recipient) -->
+            <div class="p-6 bg-blue-50 rounded-lg border-2 border-dashed border-blue-300">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <span class="mr-2 text-blue-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.727A8 8 0 016.343 15.273L4 17.5V10h12a8 8 0 01.657 6.727z" />
+                        </svg>
+                    </span>
+                    ข้อมูลผู้รับ (Recipient)
+                </h2>
+                <div class="space-y-4">
+                    <input type="text" id="recipientName" placeholder="ชื่อ-นามสกุล ผู้รับ" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                    <textarea id="recipientAddress1" placeholder="ที่อยู่ (บ้านเลขที่, ถนน)" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"></textarea>
+
+                    <input type="text" id="recipientZipcode" placeholder="รหัสไปรษณีย์ (เช่น 96210)" maxlength="5" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" oninput="lookupAddress('recipient')">
+
+                    <!-- ส่วนที่จะเป็น Dropdown หรือ Input ธรรมดา สำหรับ แขวง/ตำบล -->
+                    <div id="recipientDistrictContainer" class="w-full">
+                        <input type="text" id="recipientDistrict" placeholder="แขวง/ตำบล" required class="w-full p-3 border border-gray-300 rounded-lg bg-gray-100" readonly>
+                    </div>
+
+                    <input type="text" id="recipientAmphoe" placeholder="เขต/อำเภอ" required class="w-full p-3 border border-gray-300 rounded-lg bg-gray-100" readonly>
+                    <input type="text" id="recipientProvince" placeholder="จังหวัด" required class="w-full p-3 border border-gray-300 rounded-lg bg-gray-100" readonly>
+                    <input type="tel" id="recipientPhone" placeholder="เบอร์โทรศัพท์ (ต้องระบุ)" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                </div>
+            </div>
+
+            <!-- ปุ่มสร้างใบปะหน้า -->
+            <div class="lg:col-span-2 mt-6 text-center">
+                <button type="submit" class="w-full md:w-auto px-8 py-3 bg-green-500 text-white font-bold rounded-xl shadow-lg hover:bg-green-600 transition duration-300 transform hover:scale-105">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    สร้างใบปะหน้าและดูตัวอย่าง (Print Preview)
+                </button>
+            </div>
+        </form>
+
+    </div>
+
+    <!-- Modal/Dialog สำหรับแสดงตัวอย่างใบปะหน้าก่อนพิมพ์ -->
+    <div id="printModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-gray-900 bg-opacity-75 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-2xl w-full max-w-3xl h-full md:h-5/6 flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b">
+                <h3 class="text-xl font-bold text-indigo-700">ตัวอย่างใบปะหน้าห่อสินค้า (Shipping Label Preview)</h3>
+                <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- พื้นที่แสดงใบปะหน้า/พื้นที่สั่งพิมพ์ -->
+            <div id="print-area-container" class="flex-grow overflow-y-auto p-4 md:p-8 bg-gray-100 flex justify-center items-start">
+                <div id="print-area" class="w-full max-w-2xl bg-white p-6 md:p-8 shadow-lg border border-gray-300 min-h-[300px]">
+                    <!-- เนื้อหาใบปะหน้าจะถูกสร้างที่นี่ด้วย JavaScript -->
+                </div>
+            </div>
+
+            <!-- ปุ่มสั่งพิมพ์/ดาวน์โหลด PDF -->
+            <div class="p-4 border-t bg-gray-50 flex justify-center space-x-4">
+                <button onclick="printLabel()" class="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition duration-150 shadow-md flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5 4v3h.5a.5.5 0 01.5.5v2.5a.5.5 0 01-.5.5H5v3h10v-3h-.5a.5.5 0 01-.5-.5V7.5a.5.5 0 01.5-.5H15V4h-1.5a.5.5 0 00-.5.5v1h-7v-1A.5.5 0 005 4h-.5zm1 1h7v1h-7V5zm1.5 2h5v3h-5V7z" clip-rule="evenodd" />
+                    </svg>
+                    พิมพ์/ดาวน์โหลด PDF
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Message Box for errors -->
+    <div id="messageBox" class="hidden fixed top-4 right-4 z-50 p-4 rounded-lg text-white font-semibold shadow-xl transition-opacity duration-300 opacity-0" role="alert">
+        <p id="messageText"></p>
+    </div>
+
+    <script>
+        // ฐานข้อมูลรหัสไปรษณีย์หลัก - โครงสร้างใหม่: { zipcode: [ { district, amphoe, province }, ... ] }
+        let ADDRESS_DB = {
+            "10200": [
+                { district: "พระบรมมหาราชวัง", amphoe: "พระนคร", province: "กรุงเทพมหานคร" },
+                { district: "วังบูรพาภิรมย์", amphoe: "พระนคร", province: "กรุงเทพมหานคร" },
+                { district: "วัดราชบพิธ", amphoe: "พระนคร", province: "กรุงเทพมหานคร" },
+                { district: "สำราญราษฎร์", amphoe: "พระนคร", province: "กรุงเทพมหานคร" },
+                { district: "เสาชิงช้า", amphoe: "พระนคร", province: "กรุงเทพมหานคร" },
+                { district: "ชนะสงคราม", amphoe: "พระนคร", province: "กรุงเทพมหานคร" }
+            ],
+            "96210": [
+                { district: "ตะมะยูง", amphoe: "ศรีสาคร", province: "นราธิวาส" },
+                { district: "ศรีสาคร", amphoe: "ศรีสาคร", province: "นราธิวาส" },
+                { district: "เชิงคีรี", amphoe: "ศรีสาคร", province: "นราธิวาส" },
+                { district: "กาหลง", amphoe: "ศรีสาคร", province: "นราธิวาส" }
+            ],
+            "50000": [
+                { district: "ศรีภูมิ", amphoe: "เมืองเชียงใหม่", province: "เชียงใหม่" }
+            ],
+            "90110": [
+                { district: "คอหงส์", amphoe: "หาดใหญ่", province: "สงขลา" }
+            ],
+            "96160": [
+                { district: "แว้ง", amphoe: "แว้ง", province: "นราธิวาส" },
+                { district: "กายูคละ", amphoe: "แว้ง", province: "นราธิวาส" },
+                { district: "ฆอเลาะ", amphoe: "แว้ง", province: "นราธิวาส" }
+            ]
+        };
+        const dataStatusElement = document.getElementById('dataStatus');
+
+        const form = document.getElementById('labelForm');
+        const printModal = document.getElementById('printModal');
+        const printArea = document.getElementById('print-area');
+
+        // ฟังก์ชันแสดงข้อความแจ้งเตือนแทน alert()
+        function showMessage(text, type = 'error') {
+            const box = document.getElementById('messageBox');
+            const messageText = document.getElementById('messageText');
+            
+            box.className = 'hidden fixed top-4 right-4 z-50 p-4 rounded-lg text-white font-semibold shadow-xl transition-opacity duration-300 opacity-0';
+            
+            let bgColor = 'bg-red-500'; // Default to error
+            if (type === 'success') {
+                bgColor = 'bg-green-500';
+            } else if (type === 'info') {
+                bgColor = 'bg-blue-500';
+            }
+
+            box.classList.remove('hidden');
+            box.classList.add(bgColor, 'opacity-100');
+            messageText.textContent = text;
+
+            setTimeout(() => {
+                box.classList.remove('opacity-100');
+                box.classList.add('opacity-0');
+                setTimeout(() => box.classList.add('hidden'), 300);
+            }, 3000);
+        }
+
+        // ฟังก์ชันจัดการการอัปโหลดไฟล์ CSV
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.name.endsWith('.csv')) {
+                showMessage("ไฟล์ที่อัปโหลดไม่ใช่ไฟล์ CSV", 'error');
+                dataStatusElement.textContent = "สถานะ: การโหลดล้มเหลว (ไฟล์ต้องเป็น CSV)";
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const newDB = parseCSV(text);
+                
+                if (Object.keys(newDB).length > 0) {
+                    // ใช้ข้อมูลใหม่ทั้งหมดที่โหลดมาแทนที่ AddressDB เดิม
+                    ADDRESS_DB = newDB; 
+                    dataStatusElement.textContent = `สถานะ: โหลดฐานข้อมูลสำเร็จ (${Object.keys(ADDRESS_DB).length} รหัสไปรษณีย์)`;
+                    dataStatusElement.classList.remove('text-red-500');
+                    dataStatusElement.classList.add('text-green-600');
+                    showMessage("โหลดฐานข้อมูลรหัสไปรษณีย์ใหม่สำเร็จแล้ว!", 'success');
+                } else {
+                    showMessage("ไม่สามารถอ่านข้อมูลที่อยู่จากไฟล์ CSV นี้ได้ (โปรดตรวจสอบรูปแบบ)", 'error');
+                    dataStatusElement.textContent = `สถานะ: การโหลดล้มเหลว (รูปแบบ CSV อาจไม่ถูกต้อง - ข้อมูลปัจจุบัน ${Object.keys(ADDRESS_DB).length} รหัสไปรษณีย์)`;
+                    dataStatusElement.classList.remove('text-green-600');
+                    dataStatusElement.classList.add('text-red-500');
+                }
+            };
+            reader.readAsText(file, 'UTF-8'); 
+        }
+
+        // ฟังก์ชันแยกวิเคราะห์ข้อความ CSV เป็น Object ฐานข้อมูล
+        // รูปแบบ CSV ของคุณ: province (0), district (1), subdistrict (2), zipcode (3), ...
+        function parseCSV(csvText) {
+            const lines = csvText.split('\n');
+            const db = {};
+            // เริ่มจากบรรทัดที่ 1 เพื่อข้ามหัวตาราง (header)
+            for (let i = 1; i < lines.length; i++) { 
+                const line = lines[i].trim();
+                if (line === "") continue;
+
+                // ใช้คอมม่า (,) เป็นตัวแบ่ง
+                const columns = line.split(',');
+                
+                if (columns.length >= 4) {
+                    // province (0), district (1) -> Amphoe, subdistrict (2) -> District (Tambon/Khwaeng)
+                    const province = columns[0].trim();
+                    const amphoe = columns[1].trim(); 
+                    const district = columns[2].trim(); 
+                    const zipcode = columns[3].trim(); 
+                    
+                    if (zipcode.length === 5 && !isNaN(zipcode)) {
+                        const address = { district, amphoe, province };
+                        
+                        // ตรวจสอบว่ามีรหัสไปรษณีย์นี้ใน DB แล้วหรือไม่
+                        if (!db[zipcode]) {
+                            db[zipcode] = [];
+                        }
+                        // เพิ่มข้อมูลที่อยู่ลงใน Array
+                        db[zipcode].push(address); 
+                    }
+                }
+            }
+            return db;
+        }
+        
+        // ฟังก์ชันสำหรับเลือกที่อยู่จาก Dropdown (สำหรับกรณีที่มีหลายผลลัพธ์)
+        function selectAddress(prefix) {
+            const selectElement = document.getElementById(`${prefix}DistrictSelect`);
+            const selectedIndex = selectElement.value;
+            
+            const zipcode = document.getElementById(`${prefix}Zipcode`).value.trim();
+            const addressList = ADDRESS_DB[zipcode];
+            
+            const districtInput = document.getElementById(`${prefix}District`);
+            const amphoeElement = document.getElementById(`${prefix}Amphoe`);
+            const provinceElement = document.getElementById(`${prefix}Province`);
+            
+            if (selectedIndex !== "" && addressList && addressList[parseInt(selectedIndex)]) {
+                const selectedAddress = addressList[parseInt(selectedIndex)];
+                
+                // อัปเดตช่องที่อยู่สุดท้าย
+                districtInput.value = selectedAddress.district; // อัปเดต input field ที่ซ่อน/สร้างใหม่
+                amphoeElement.value = selectedAddress.amphoe;
+                provinceElement.value = selectedAddress.province;
+            } else {
+                // ถ้าเลือก "เลือกแขวง/ตำบล" ให้ล้างช่องที่เหลือ
+                districtInput.value = '';
+                amphoeElement.value = '';
+                provinceElement.value = '';
+            }
+        }
+
+        // ฟังก์ชันดึงข้อมูลที่อยู่จากรหัสไปรษณีย์
+        function lookupAddress(prefix) {
+            const zipcode = document.getElementById(`${prefix}Zipcode`).value.trim();
+            const districtContainer = document.getElementById(`${prefix}DistrictContainer`);
+            
+            const amphoeElement = document.getElementById(`${prefix}Amphoe`);
+            const provinceElement = document.getElementById(`${prefix}Province`);
+            
+            // ล้างค่าเดิมทั้งหมด
+            districtContainer.innerHTML = '';
+            amphoeElement.value = '';
+            provinceElement.value = '';
+            amphoeElement.classList.add('bg-gray-100');
+            amphoeElement.classList.remove('bg-white');
+            provinceElement.classList.add('bg-gray-100');
+            provinceElement.classList.remove('bg-white');
+
+
+            if (zipcode.length === 5 && ADDRESS_DB[zipcode]) {
+                const results = ADDRESS_DB[zipcode];
+                
+                if (results.length >= 1) {
+                    // กรณีมีหนึ่งผลลัพธ์หรือหลายผลลัพธ์: แสดง Dropdown ให้เลือก
+                    let selectHtml = `
+                        <select id="${prefix}DistrictSelect" onchange="selectAddress('${prefix}')" required 
+                                class="w-full p-3 border border-indigo-500 rounded-lg bg-white focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="" disabled selected>--- กรุณาเลือกแขวง/ตำบลที่ถูกต้อง ---</option>
+                    `;
+                    
+                    results.forEach((addr, index) => {
+                        selectHtml += `<option value="${index}">${addr.district} (${addr.amphoe} - ${addr.province})</option>`;
+                    });
+                    
+                    selectHtml += `</select>`;
+                    districtContainer.innerHTML = selectHtml;
+                    
+                    // สร้าง input field ที่ซ่อนไว้เพื่อเก็บค่าจริงที่เลือกไปแล้ว (สำหรับส่งในฟอร์ม)
+                    districtContainer.innerHTML += `<input type="hidden" id="${prefix}District" name="${prefix}District" required>`;
+
+                    // หากมีผลลัพธ์เดียว ให้เลือกอัตโนมัติ (Single-match)
+                    if (results.length === 1) {
+                        document.getElementById(`${prefix}DistrictSelect`).value = 0;
+                        selectAddress(prefix);
+                        document.getElementById(`${prefix}DistrictSelect`).disabled = true; // ล็อค Dropdown ถ้ามีผลลัพธ์เดียว
+                    } else {
+                        // ถ้ามีหลายผลลัพธ์ ให้ล้างค่าที่เติมอัตโนมัติ (Amphoe/Province) จนกว่าจะเลือก
+                        amphoeElement.value = '';
+                        provinceElement.value = '';
+                    }
+
+                }
+            } else {
+                // ไม่พบข้อมูลใน DB หรือยังพิมพ์ไม่ครบ: ให้กรอกเอง (Manual Entry)
+                districtContainer.innerHTML = `
+                    <input type="text" id="${prefix}District" placeholder="แขวง/ตำบล" required 
+                            class="w-full p-3 border border-gray-300 rounded-lg bg-white focus:ring-red-500 focus:border-red-500">
+                `;
+                amphoeElement.classList.remove('bg-gray-100');
+                amphoeElement.classList.add('bg-white');
+                provinceElement.classList.remove('bg-gray-100');
+                provinceElement.classList.add('bg-white');
+            }
+        }
+
+        // ฟังก์ชันเปิด Modal และสร้างใบปะหน้า
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            // 1. ดึงข้อมูลทั้งหมดจากฟอร์ม
+            const sender = {
+                name: document.getElementById('senderName').value,
+                address1: document.getElementById('senderAddress1').value,
+                district: document.getElementById('senderDistrict').value,
+                amphoe: document.getElementById('senderAmphoe').value,
+                province: document.getElementById('senderProvince').value,
+                zipcode: document.getElementById('senderZipcode').value,
+                phone: document.getElementById('senderPhone').value,
+            };
+
+            const recipient = {
+                name: document.getElementById('recipientName').value,
+                address1: document.getElementById('recipientAddress1').value,
+                district: document.getElementById('recipientDistrict').value,
+                amphoe: document.getElementById('recipientAmphoe').value,
+                province: document.getElementById('recipientProvince').value,
+                zipcode: document.getElementById('recipientZipcode').value,
+                phone: document.getElementById('recipientPhone').value,
+            };
+            
+            // 2. สร้าง HTML สำหรับใบปะหน้า
+            const labelHtml = `
+                <div class="border-4 border-black p-4 md:p-6 w-full h-full text-sm">
+                    <div class="flex justify-between items-start border-b border-black pb-2 mb-4">
+                        <h1 class="text-xl font-bold text-black uppercase">ใบปะหน้าสำหรับจัดส่ง</h1>
+                        <span class="text-xs">วันที่: ${new Date().toLocaleDateString('th-TH', { dateStyle: 'short' })}</span>
+                    </div>
+
+                    <!-- ส่วนผู้ส่ง (Sender) -->
+                    <div class="border-b border-black pb-4 mb-4">
+                        <p class="text-lg font-bold text-indigo-700 mb-1">ผู้ส่ง (Sender):</p>
+                        <p class="font-bold">${sender.name} (โทร: ${sender.phone || '-'})</p>
+                        <p>${sender.address1}</p>
+                        <p>ต.${sender.district} อ.${sender.amphoe} จ.${sender.province} ${sender.zipcode}</p>
+                    </div>
+
+                    <!-- ส่วนผู้รับ (Recipient) - เน้นตัวใหญ่พิเศษ -->
+                    <div class="border-b border-black pb-4 mb-4">
+                        <p class="text-lg font-bold text-blue-700 mb-2">ผู้รับ (Recipient):</p>
+                        <div class="p-3 border-2 border-red-500 bg-red-50 rounded-lg">
+                            <h3 class="text-2xl font-extrabold text-red-800">${recipient.name}</h3>
+                            <p class="text-xl font-bold mt-1">โทร: ${recipient.phone}</p>
+                            <p class="mt-2 text-lg">${recipient.address1}</p>
+                            <p class="text-lg font-bold">ต.${recipient.district} อ.${recipient.amphoe} จ.${recipient.province} <span class="text-3xl font-extrabold ml-4">${recipient.zipcode}</span></p>
+                        </div>
+                    </div>
+
+                    <!-- พื้นที่หมายเหตุ/ข้อมูลการจัดส่ง -->
+                    <div class="pt-2">
+                        <p class="text-sm font-semibold mb-1">หมายเหตุ/ประเภทการจัดส่ง:</p>
+                        <div class="h-16 border border-gray-400 p-2 rounded">
+                            <!-- ช่องว่างสำหรับเขียนหมายเหตุเพิ่มเติม -->
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // 3. ใส่ HTML เข้าไปในพื้นที่พิมพ์
+            printArea.innerHTML = labelHtml;
+
+            // 4. เปิด Modal
+            printModal.classList.remove('hidden');
+            printModal.classList.add('flex');
+        });
+
+        // ฟังก์ชันสั่งพิมพ์ (ใช้ฟังก์ชัน window.print() มาตรฐาน)
+        function printLabel() {
+            const modalContainer = document.querySelector('#printModal > div');
+            if (modalContainer) {
+                modalContainer.style.display = 'none';
+            }
+            
+            window.print();
+            
+            if (modalContainer) {
+                modalContainer.style.display = 'flex';
+            }
+
+            showMessage("กำลังเปิดหน้าต่างพิมพ์. คุณสามารถเลือก 'Save as PDF' เพื่อดาวน์โหลดได้.", 'info');
+        }
+
+        // ฟังก์ชันปิด Modal
+        function closeModal() {
+            printModal.classList.add('hidden');
+            printModal.classList.remove('flex');
+            printArea.innerHTML = ''; // ล้างเนื้อหา
+        }
+    </script>
+</body>
+</html>
+```
+}
