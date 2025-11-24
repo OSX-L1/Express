@@ -63,10 +63,10 @@ index.html:
                 อัปโหลดฐานข้อมูลรหัสไปรษณีย์ (CSV)
             </h2>
             <p class="text-sm text-yellow-700 mb-3">
-                ฐานข้อมูลเริ่มต้นถูกฝังในโค้ดแล้ว (รองรับการเลือกแขวง/ตำบลจากรหัสไปรษณีย์) คุณสามารถอัปโหลดไฟล์ CSV (รูปแบบ: `จังหวัด, อำเภอ, ตำบล, รหัสไปรษณีย์, ...`) เพื่อเพิ่มข้อมูล 7,000 รายการของคุณ
+                ฐานข้อมูลจะถูกโหลดจาก GitHub และแคชไว้ในเครื่อง. คุณสามารถอัปโหลดไฟล์ CSV (รูปแบบ: `จังหวัด, อำเภอ, ตำบล, รหัสไปรษณีย์, ...`) เพื่อใช้ข้อมูลใหม่แทนที่ข้อมูลที่โหลดมา.
             </p>
             <input type="file" id="csvFile" accept=".csv" class="w-full p-2 border border-yellow-400 rounded-lg bg-white" onchange="handleFileUpload(event)">
-            <p id="dataStatus" class="mt-2 text-sm font-medium text-green-600">สถานะ: ฐานข้อมูลที่อยู่ฝังในโค้ดแล้ว (6 รหัสไปรษณีย์) - อัปโหลดใหม่เพื่อเพิ่ม</p>
+            <p id="dataStatus" class="mt-2 text-sm font-medium text-blue-600">สถานะ: กำลังโหลดฐานข้อมูล...</p>
         </div>
 
         <form id="labelForm" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -174,39 +174,69 @@ index.html:
     </div>
 
     <script>
-        // ฐานข้อมูลรหัสไปรษณีย์หลัก - โครงสร้างใหม่: { zipcode: [ { district, amphoe, province }, ... ] }
-        let ADDRESS_DB = {
-            "10200": [
-                { district: "พระบรมมหาราชวัง", amphoe: "พระนคร", province: "กรุงเทพมหานคร" },
-                { district: "วังบูรพาภิรมย์", amphoe: "พระนคร", province: "กรุงเทพมหานคร" },
-                { district: "วัดราชบพิธ", amphoe: "พระนคร", province: "กรุงเทพมหานคร" },
-                { district: "สำราญราษฎร์", amphoe: "พระนคร", province: "กรุงเทพมหานคร" },
-                { district: "เสาชิงช้า", amphoe: "พระนคร", province: "กรุงเทพมหานคร" },
-                { district: "ชนะสงคราม", amphoe: "พระนคร", province: "กรุงเทพมหานคร" }
-            ],
-            "96210": [
-                { district: "ตะมะยูง", amphoe: "ศรีสาคร", province: "นราธิวาส" },
-                { district: "ศรีสาคร", amphoe: "ศรีสาคร", province: "นราธิวาส" },
-                { district: "เชิงคีรี", amphoe: "ศรีสาคร", province: "นราธิวาส" },
-                { district: "กาหลง", amphoe: "ศรีสาคร", province: "นราธิวาส" }
-            ],
-            "50000": [
-                { district: "ศรีภูมิ", amphoe: "เมืองเชียงใหม่", province: "เชียงใหม่" }
-            ],
-            "90110": [
-                { district: "คอหงส์", amphoe: "หาดใหญ่", province: "สงขลา" }
-            ],
-            "96160": [
-                { district: "แว้ง", amphoe: "แว้ง", province: "นราธิวาส" },
-                { district: "กายูคละ", amphoe: "แว้ง", province: "นราธิวาส" },
-                { district: "ฆอเลาะ", amphoe: "แว้ง", province: "นราธิวาส" }
-            ]
-        };
+        // *** CONFIGURATION: Raw URL ของไฟล์ CSV ที่คุณอัปโหลดบน GitHub ***
+        const DEFAULT_CSV_URL = "https://raw.githubusercontent.com/OSX-L1/Express/refs/heads/main/data/thailand-zipcodes.csv"; 
+        const CACHE_KEY = 'thai_zipcode_db_v2'; // Key สำหรับเก็บใน LocalStorage
+
+        // ฐานข้อมูลรหัสไปรษณีย์หลัก - จะถูกโหลดจาก LocalStorage หรือ URL
+        let ADDRESS_DB = {};
         const dataStatusElement = document.getElementById('dataStatus');
 
         const form = document.getElementById('labelForm');
         const printModal = document.getElementById('printModal');
         const printArea = document.getElementById('print-area');
+
+        // ฟังก์ชันดึงข้อมูลจาก URL และแคช
+        async function fetchAndCacheData() {
+            // 1. ลองดึงจาก LocalStorage ก่อน
+            const cachedData = localStorage.getItem(CACHE_KEY);
+            if (cachedData) {
+                try {
+                    ADDRESS_DB = JSON.parse(cachedData);
+                    const count = Object.keys(ADDRESS_DB).length.toLocaleString();
+                    dataStatusElement.textContent = `สถานะ: โหลดฐานข้อมูลสำเร็จ (${count} รหัสไปรษณีย์) - (จาก LocalStorage)`;
+                    dataStatusElement.classList.remove('text-red-500', 'text-yellow-700');
+                    dataStatusElement.classList.add('text-blue-600');
+                    return;
+                } catch (e) {
+                    console.error("Error parsing cached data:", e);
+                    localStorage.removeItem(CACHE_KEY);
+                }
+            }
+
+            // 2. ถ้าไม่มีใน Cache, ให้ดึงจาก URL
+            dataStatusElement.textContent = `สถานะ: กำลังโหลดฐานข้อมูลที่อยู่จาก GitHub...`;
+            dataStatusElement.classList.remove('text-green-600', 'text-blue-600');
+            dataStatusElement.classList.add('text-yellow-700');
+
+            try {
+                const response = await fetch(DEFAULT_CSV_URL);
+                if (!response.ok) throw new Error(`HTTP error! สถานะ: ${response.status}`);
+                
+                const csvText = await response.text();
+                const newDB = parseCSV(csvText);
+
+                if (Object.keys(newDB).length > 0) {
+                    ADDRESS_DB = newDB;
+                    localStorage.setItem(CACHE_KEY, JSON.stringify(ADDRESS_DB)); // แคชข้อมูลใหม่
+                    const count = Object.keys(ADDRESS_DB).length.toLocaleString();
+                    dataStatusElement.textContent = `สถานะ: โหลดฐานข้อมูลสำเร็จ (${count} รหัสไปรษณีย์) - (ใหม่จาก URL)`;
+                    dataStatusElement.classList.remove('text-yellow-700', 'text-blue-600');
+                    dataStatusElement.classList.add('text-green-600');
+                    showMessage("โหลดฐานข้อมูลรหัสไปรษณีย์ใหม่จาก GitHub สำเร็จ!", 'success');
+                } else {
+                    throw new Error("CSV file parsed but contained no valid data.");
+                }
+
+            } catch (error) {
+                console.error("Error fetching or parsing CSV:", error);
+                dataStatusElement.textContent = `สถานะ: โหลดฐานข้อมูลล้มเหลว (ไม่สามารถเข้าถึง URL หรือรูปแบบไม่ถูกต้อง) - ${error.message}`;
+                dataStatusElement.classList.remove('text-yellow-700', 'text-green-600', 'text-blue-600');
+                dataStatusElement.classList.add('text-red-500');
+                showMessage("ไม่สามารถโหลดฐานข้อมูลที่อยู่จาก URL ได้. โปรดลองอัปโหลดไฟล์ CSV ด้วยตนเอง", 'error');
+            }
+        }
+
 
         // ฟังก์ชันแสดงข้อความแจ้งเตือนแทน alert()
         function showMessage(text, type = 'error') {
@@ -250,16 +280,18 @@ index.html:
                 const newDB = parseCSV(text);
                 
                 if (Object.keys(newDB).length > 0) {
-                    // ใช้ข้อมูลใหม่ทั้งหมดที่โหลดมาแทนที่ AddressDB เดิม
+                    // ใช้ข้อมูลใหม่ทั้งหมดที่โหลดมาแทนที่ AddressDB เดิมและแคช
                     ADDRESS_DB = newDB; 
-                    dataStatusElement.textContent = `สถานะ: โหลดฐานข้อมูลสำเร็จ (${Object.keys(ADDRESS_DB).length} รหัสไปรษณีย์)`;
-                    dataStatusElement.classList.remove('text-red-500');
+                    localStorage.setItem(CACHE_KEY, JSON.stringify(ADDRESS_DB));
+                    const count = Object.keys(ADDRESS_DB).length.toLocaleString();
+                    dataStatusElement.textContent = `สถานะ: โหลดฐานข้อมูลสำเร็จ (${count} รหัสไปรษณีย์) - (จากไฟล์ที่อัปโหลด)`;
+                    dataStatusElement.classList.remove('text-red-500', 'text-blue-600');
                     dataStatusElement.classList.add('text-green-600');
-                    showMessage("โหลดฐานข้อมูลรหัสไปรษณีย์ใหม่สำเร็จแล้ว!", 'success');
+                    showMessage("โหลดฐานข้อมูลรหัสไปรษณีย์ใหม่จากไฟล์สำเร็จแล้ว!", 'success');
                 } else {
                     showMessage("ไม่สามารถอ่านข้อมูลที่อยู่จากไฟล์ CSV นี้ได้ (โปรดตรวจสอบรูปแบบ)", 'error');
-                    dataStatusElement.textContent = `สถานะ: การโหลดล้มเหลว (รูปแบบ CSV อาจไม่ถูกต้อง - ข้อมูลปัจจุบัน ${Object.keys(ADDRESS_DB).length} รหัสไปรษณีย์)`;
-                    dataStatusElement.classList.remove('text-green-600');
+                    dataStatusElement.textContent = `สถานะ: การโหลดล้มเหลว (รูปแบบ CSV อาจไม่ถูกต้อง - ข้อมูลปัจจุบัน ${Object.keys(ADDRESS_DB).length.toLocaleString()} รหัสไปรษณีย์)`;
+                    dataStatusElement.classList.remove('text-green-600', 'text-blue-600');
                     dataStatusElement.classList.add('text-red-500');
                 }
             };
@@ -267,7 +299,7 @@ index.html:
         }
 
         // ฟังก์ชันแยกวิเคราะห์ข้อความ CSV เป็น Object ฐานข้อมูล
-        // รูปแบบ CSV ของคุณ: province (0), district (1), subdistrict (2), zipcode (3), ...
+        // รูปแบบ CSV ที่คาดหวัง: province (0), district (1), subdistrict (2), zipcode (3), ...
         function parseCSV(csvText) {
             const lines = csvText.split('\n');
             const db = {};
@@ -277,23 +309,35 @@ index.html:
                 if (line === "") continue;
 
                 // ใช้คอมม่า (,) เป็นตัวแบ่ง
-                const columns = line.split(',');
+                // ใช้ Regular Expression เพื่อรองรับการมีเครื่องหมายคำพูดในข้อมูล
+                const columns = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
                 
-                if (columns.length >= 4) {
-                    // province (0), district (1) -> Amphoe, subdistrict (2) -> District (Tambon/Khwaeng)
-                    const province = columns[0].trim();
-                    const amphoe = columns[1].trim(); 
-                    const district = columns[2].trim(); 
-                    const zipcode = columns[3].trim(); 
+                if (!columns || columns.length < 4) {
+                    // บรรทัดนี้อาจจะไม่มีข้อมูลที่จำเป็น
+                    continue;
+                }
+                
+                // province (0), district (1) -> Amphoe, subdistrict (2) -> District (Tambon/Khwaeng)
+                // trim() และลบเครื่องหมายคำพูดออกถ้ามี
+                const clean = (str) => str ? str.trim().replace(/^"|"$/g, '') : '';
+
+                const province = clean(columns[0]);
+                const amphoe = clean(columns[1]); 
+                const district = clean(columns[2]); 
+                const zipcode = clean(columns[3]); 
+                
+                if (zipcode.length === 5 && !isNaN(zipcode)) {
+                    const address = { district, amphoe, province };
                     
-                    if (zipcode.length === 5 && !isNaN(zipcode)) {
-                        const address = { district, amphoe, province };
-                        
-                        // ตรวจสอบว่ามีรหัสไปรษณีย์นี้ใน DB แล้วหรือไม่
-                        if (!db[zipcode]) {
-                            db[zipcode] = [];
-                        }
-                        // เพิ่มข้อมูลที่อยู่ลงใน Array
+                    if (!db[zipcode]) {
+                        db[zipcode] = [];
+                    }
+                    // ตรวจสอบข้อมูลซ้ำก่อนเพิ่ม
+                    if (!db[zipcode].some(item => 
+                        item.district === address.district && 
+                        item.amphoe === address.amphoe && 
+                        item.province === address.province
+                    )) {
                         db[zipcode].push(address); 
                     }
                 }
@@ -484,6 +528,11 @@ index.html:
             printModal.classList.remove('flex');
             printArea.innerHTML = ''; // ล้างเนื้อหา
         }
+        
+        // เริ่มโหลดข้อมูลเมื่อหน้าเว็บโหลดเสร็จ
+        window.onload = function() {
+            fetchAndCacheData();
+        };
     </script>
 </body>
 </html>
