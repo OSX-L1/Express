@@ -19,547 +19,485 @@
         /* กำหนดให้ใช้ฟอนต์ Sarabun ทั่วทั้งแอปพลิเคชัน */
         body {
             font-family: 'Sarabun', sans-serif;
-            background-color: #f7fafc; /* light gray background */
+            background-color: #f7f9fb;
         }
-        /* ซ่อนแถบเลื่อนบนมือถือ */
-        #preview-container {
-            -ms-overflow-style: none; /* IE and Edge */
-            scrollbar-width: none; /* Firefox */
-        }
-        #preview-container::-webkit-scrollbar {
-            display: none; /* Chrome, Safari and Opera */
+        /* กำหนดสไตล์สำหรับใบปะหน้า */
+        .shipping-label {
+            width: 80mm; /* ขนาดประมาณ 8x10 ซม. สำหรับใบปะหน้าเล็ก */
+            height: 100mm;
+            padding: 10mm;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            background-color: white;
+            font-size: 10pt;
+            line-height: 1.3;
+            box-sizing: border-box;
         }
     </style>
 </head>
 <body class="p-4 md:p-8">
-
-    <div id="message-box" class="fixed top-4 right-4 z-50 space-y-2"></div>
-    
-    <h1 class="text-3xl font-bold text-center text-indigo-700 mb-6">โปรแกรมสร้างใบปะหน้าจัดส่งสินค้า</h1>
-
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Panel สำหรับกรอกข้อมูล -->
-        <div class="lg:col-span-2 space-y-8">
+    <div class="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8">
+        <!-- แผงควบคุม (Control Panel) -->
+        <div class="lg:w-1/2 w-full bg-white p-6 rounded-xl shadow-lg h-full">
+            <h1 class="text-3xl font-bold text-gray-800 mb-6 border-b pb-2">📦 โปรแกรมสร้างใบปะหน้าจัดส่งสินค้า</h1>
             
-            <!-- ส่วนการจัดการข้อมูลรหัสไปรษณีย์ (ใหม่) -->
-            <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
-                <h2 class="text-xl font-semibold text-indigo-600 mb-4 flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6 mr-2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75l10.51 5.65c.57.31 1.28.31 1.85 0L24 12.75l-7.79-4.18c-.48-.26-1.05-.26-1.53 0L2.25 12.75zM12 21.75V15" />
-                    </svg>
-                    จัดการข้อมูลรหัสไปรษณีย์
-                </h2>
-                <div class="flex flex-col md:flex-row items-center space-y-3 md:space-y-0 md:space-x-4">
-                    <input type="file" id="zipcode-csv-file" accept=".csv" class="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 flex-1 w-full md:w-auto">
-                    <button id="import-zipcodes-button" onclick="importZipCodes()" class="w-full md:w-auto px-4 py-2 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition duration-150 shadow-md flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 mr-2">
-                            <path fill-rule="evenodd" d="M12 2.25a.75.75 0 0 1 .75.75v11.66l2.72-2.72a.75.75 0 1 1 1.06 1.06l-4 4a.75.75 0 0 1-1.06 0l-4-4a.75.75 0 1 1 1.06-1.06l2.72 2.72V3a.75.75 0 0 1 .75-.75Zm-5.25 17.25a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H7.5a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" />
+            <!-- ส่วนแสดงข้อความแจ้งเตือน/สถานะ -->
+            <div id="message-box" class="hidden p-3 mb-4 rounded-lg text-sm transition-all duration-300"></div>
+
+            <div id="app-content">
+                <!-- ข้อมูลผู้ส่ง (Sender Info) -->
+                <h2 class="text-xl font-semibold text-indigo-700 mt-4 mb-3">📍 ข้อมูลผู้ส่ง (Sender)</h2>
+                <form id="sender-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="sender_name" class="block text-sm font-medium text-gray-700">ชื่อ-นามสกุล/ร้านค้า</label>
+                        <input type="text" id="sender_name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" value="ผู้ส่ง ตัวอย่าง">
+                    </div>
+                    <div>
+                        <label for="sender_phone" class="block text-sm font-medium text-gray-700">เบอร์โทรศัพท์</label>
+                        <input type="tel" id="sender_phone" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" value="081-123-4567">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label for="sender_address" class="block text-sm font-medium text-gray-700">ที่อยู่</label>
+                        <textarea id="sender_address" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">123/45 ถนนสาธุประดิษฐ์</textarea>
+                    </div>
+                    <div>
+                        <label for="sender_province" class="block text-sm font-medium text-gray-700">จังหวัด</label>
+                        <input type="text" id="sender_province" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" value="กรุงเทพมหานคร">
+                    </div>
+                    <div>
+                        <label for="sender_district" class="block text-sm font-medium text-gray-700">อำเภอ/เขต</label>
+                        <input type="text" id="sender_district" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" value="บางคอแหลม">
+                    </div>
+                    <div>
+                        <label for="sender_subdistrict" class="block text-sm font-medium text-gray-700">ตำบล/แขวง</label>
+                        <input type="text" id="sender_subdistrict" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" value="บางโคล่">
+                    </div>
+                    <div>
+                        <label for="sender_zipcode" class="block text-sm font-medium text-gray-700">รหัสไปรษณีย์</label>
+                        <input type="text" id="sender_zipcode" maxlength="5" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" value="10120">
+                    </div>
+                </form>
+
+                <!-- ข้อมูลผู้รับ (Recipient Info) -->
+                <h2 class="text-xl font-semibold text-indigo-700 mt-6 mb-3">👤 ข้อมูลผู้รับ (Recipient)</h2>
+                <form id="recipient-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="recipient_name" class="block text-sm font-medium text-gray-700">ชื่อ-นามสกุล</label>
+                        <input type="text" id="recipient_name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" value="ผู้รับ ทดสอบ">
+                    </div>
+                    <div>
+                        <label for="recipient_phone" class="block text-sm font-medium text-gray-700">เบอร์โทรศัพท์</label>
+                        <input type="tel" id="recipient_phone" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" value="098-765-4321">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label for="recipient_address" class="block text-sm font-medium text-gray-700">ที่อยู่</label>
+                        <textarea id="recipient_address" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">20/1 หมู่ 5 ตำบลท่าเรือ</textarea>
+                    </div>
+                    <div>
+                        <label for="recipient_province" class="block text-sm font-medium text-gray-700">จังหวัด</label>
+                        <input type="text" id="recipient_province" oninput="handleAddressInput('recipient')" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" value="นครศรีธรรมราช">
+                    </div>
+                    <div>
+                        <label for="recipient_district" class="block text-sm font-medium text-gray-700">อำเภอ/เขต</label>
+                        <input type="text" id="recipient_district" oninput="handleAddressInput('recipient')" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" value="ท่าศาลา">
+                    </div>
+                    <div>
+                        <label for="recipient_subdistrict" class="block text-sm font-medium text-gray-700">ตำบล/แขวง</label>
+                        <input type="text" id="recipient_subdistrict" oninput="handleAddressInput('recipient')" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" value="ท่าเรือ">
+                    </div>
+                    <div>
+                        <label for="recipient_zipcode" class="block text-sm font-medium text-gray-700">รหัสไปรษณีย์</label>
+                        <input type="text" id="recipient_zipcode" maxlength="5" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" value="80160">
+                    </div>
+                </form>
+
+                <!-- ข้อมูลอื่นๆ -->
+                <h2 class="text-xl font-semibold text-indigo-700 mt-6 mb-3">📝 ข้อมูลพัสดุ</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="tracking_number" class="block text-sm font-medium text-gray-700">หมายเลขพัสดุ (Tracking No.)</label>
+                        <input type="text" id="tracking_number" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" value="TH0123456789">
+                    </div>
+                    <div>
+                        <label for="cod_amount" class="block text-sm font-medium text-gray-700">ยอดเก็บเงินปลายทาง (COD)</label>
+                        <input type="number" id="cod_amount" min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" value="0">
+                    </div>
+                </div>
+
+                <!-- ปุ่มควบคุม -->
+                <div class="mt-8 pt-4 border-t flex flex-col md:flex-row gap-4">
+                    <!-- ปุ่มนำเข้าข้อมูลรหัสไปรษณีย์ -->
+                    <button id="importZipCodeButton" onclick="importZipCodeData()" class="flex items-center justify-center w-full md:w-1/2 px-4 py-2 font-bold text-white bg-green-600 rounded-lg shadow-md hover:bg-green-700 disabled:opacity-50 transition duration-150">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3.293 8.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L7 7.414V14a1 1 0 11-2 0V7.414L3.707 8.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
                         </svg>
                         นำเข้าข้อมูลรหัสไปรษณีย์
                     </button>
+                    <!-- ปุ่มดาวน์โหลด PDF -->
+                    <button id="downloadPdfButton" onclick="downloadLabelPdf()" class="flex items-center justify-center w-full md:w-1/2 px-4 py-2 font-bold text-white bg-indigo-600 rounded-lg shadow-md hover:bg-indigo-700 disabled:opacity-50 transition duration-150">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L10 11.586l1.293-1.293a1 1 0 111.414 1.414l-2 2a1 1 0 01-1.414 0l-2-2a1 1 0 010-1.414zM10 2a1 1 0 011 1v7a1 1 0 11-2 0V3a1 1 0 011-1z" clip-rule="evenodd" />
+                        </svg>
+                        ดาวน์โหลด PDF
+                    </button>
                 </div>
-                <p id="zipcode-status" class="mt-2 text-sm text-gray-500"></p>
-            </div>
-            
-            <!-- ข้อมูลผู้ส่ง -->
-            <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
-                <h2 class="text-xl font-semibold text-indigo-600 mb-4 flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 mr-2">
-                        <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clip-rule="evenodd" />
-                    </svg>
-                    ข้อมูลผู้ส่ง
-                </h2>
-                <form id="sender-form" class="space-y-4">
-                    <input type="text" id="sender-name" placeholder="ชื่อ-นามสกุล ผู้ส่ง" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-                    <textarea id="sender-address" placeholder="ที่อยู่ผู้ส่ง (บ้านเลขที่, ถนน, ตำบล, อำเภอ, จังหวัด)" rows="3" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"></textarea>
-                    <input type="text" id="sender-zipcode" placeholder="รหัสไปรษณีย์" maxlength="5" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-                    <input type="tel" id="sender-phone" placeholder="เบอร์โทรศัพท์ (0XX-XXXXXXX)" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-                </form>
-            </div>
-
-            <!-- ข้อมูลผู้รับ -->
-            <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
-                <h2 class="text-xl font-semibold text-indigo-600 mb-4 flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 mr-2">
-                        <path fill-rule="evenodd" d="M18.685 19.097A9.723 9.723 0 0 0 21.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 0 0 3.065 7.097A9.716 9.716 0 0 0 12 21.75a9.716 9.716 0 0 0 6.685-2.653Zm-12.54-1.285A7.486 7.486 0 0 1 12 15a7.486 7.486 0 0 1 5.855 2.812A8.224 8.224 0 0 1 12 20.25a8.224 8.224 0 0 1-5.855-2.438ZM15.75 9.75a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" clip-rule="evenodd" />
-                    </svg>
-                    ข้อมูลผู้รับ
-                </h2>
-                <form id="recipient-form" class="space-y-4">
-                    <input type="text" id="recipient-name" placeholder="ชื่อ-นามสกุล ผู้รับ" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-                    <textarea id="recipient-address" placeholder="ที่อยู่ผู้รับ (บ้านเลขที่, ถนน, ตำบล/แขวง)" rows="3" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"></textarea>
-                    
-                    <div class="grid grid-cols-2 gap-4">
-                        <input type="text" id="recipient-district" placeholder="อำเภอ/เขต" class="col-span-1 p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-                        <input type="text" id="recipient-province" placeholder="จังหวัด" class="col-span-1 p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-                    </div>
-                    <input type="text" id="recipient-zipcode" placeholder="รหัสไปรษณีย์" maxlength="5" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-                    <input type="tel" id="recipient-phone" placeholder="เบอร์โทรศัพท์ (0XX-XXXXXXX)" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-                </form>
-            </div>
-            
-            <!-- ข้อมูลสินค้า -->
-            <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
-                <h2 class="text-xl font-semibold text-indigo-600 mb-4 flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 mr-2">
-                        <path d="M12 9a3.75 3.75 0 1 0 0 7.5A3.75 3.75 0 0 0 12 9Z" />
-                        <path fill-rule="evenodd" d="M9.344 3.071a49.52 49.52 0 0 0-1.071-.161L4.827 3.996 4.39 6.273a1.5 1.5 0 0 0 .151 1.344l.872.871A10.744 10.744 0 0 0 7.536 9.5c.348-.152.717-.263 1.096-.328A3.75 3.75 0 0 1 12 8.25c.379 0 .748.176 1.096.328.379.065.748.176 1.096.328a10.746 10.746 0 0 0 2.146-1.042l.872-.871a1.5 1.5 0 0 0 .151-1.344l-.437-2.277-3.446-.735a49.56 49.56 0 0 0-1.07-.161A48.337 48.337 0 0 0 12 3c-.732 0-1.461.028-2.185.071ZM5.587 9a1.5 1.5 0 0 0-.151 1.344l.872.872A10.748 10.748 0 0 0 12 12.75a10.747 10.747 0 0 0 5.692-2.316l.872-.872a1.5 1.5 0 0 0 .151-1.344l.437-2.277L15.93 6.64l-.872.871a1.5 1.5 0 0 0-.151 1.344l.437 2.277-3.446.735c-.379.065-.748.176-1.096.328A3.75 3.75 0 0 1 12 12.75c-.379 0-.748.176-1.096.328-.379.065-.748.176-1.096.328L8.073 11.23l.437-2.277a1.5 1.5 0 0 0-.151-1.344l-.872-.872-3.446-.735a49.56 49.56 0 0 0-1.07-.161A48.337 48.337 0 0 0 12 3c-.732 0-1.461.028-2.185.071Z" clip-rule="evenodd" />
-                    </svg>
-                    ข้อมูลสินค้า
-                </h2>
-                <form id="product-form" class="space-y-4">
-                    <input type="text" id="product-name" placeholder="ชื่อสินค้า (ไม่บังคับ)" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-                    <input type="number" id="cod-amount" placeholder="ยอดเก็บเงินปลายทาง (ถ้ามี)" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-                </form>
-            </div>
-            
-            <!-- ปุ่มดำเนินการ -->
-            <div class="flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-4">
-                <button id="save-data-button" onclick="saveFormData()" class="flex-1 px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition duration-150 shadow-lg flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 mr-2">
-                        <path d="M12 9a3.75 3.75 0 1 0 0 7.5A3.75 3.75 0 0 0 12 9Z" />
-                        <path fill-rule="evenodd" d="M9.344 3.071A48.768 48.768 0 0 1 12 3c2.433 0 4.852.198 7.21.572.118.028.237.06.355.093m-4.34-2.864A48.196 48.196 0 0 0 12 1c-2.316 0-4.63.14-6.895.424M4.68 4.992c-.389 0-.769.043-1.144.127C1.494 5.485 0 6.696 0 8.042V20.25c0 1.15 1.118 2.053 2.5 2.234 1.512.19 3.125.293 4.75.318A48.12 48.12 0 0 0 12 23.25c1.876 0 3.744-.093 5.589-.274 1.625-.025 3.238-.128 4.75-.318 1.382-.181 2.5-.595 2.5-1.744V8.042c0-1.346-1.494-2.557-3.535-2.922a47.452 47.452 0 0 0-1.144-.127C19.121 4.949 15.556 3 12 3s-7.121 1.949-8.498 3.008ZM12 16.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Z" clip-rule="evenodd" />
-                    </svg>
-                    บันทึกข้อมูล
-                </button>
-                <button id="download-pdf-button" onclick="downloadAsPDF()" class="flex-1 px-6 py-3 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition duration-150 shadow-lg flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L10 11.586l1.293-1.293a1 1 0 111.414 1.414l-2 2a1 1 0 01-1.414 0l-2-2a1 1 0 010-1.414zM10 2a1 1 0 011 1v7a1 1 0 11-2 0V3a1 1 0 011-1z" clip-rule="evenodd" />
-                    </svg>
-                    ดาวน์โหลด PDF
-                </button>
             </div>
         </div>
-
-        <!-- Panel สำหรับแสดงตัวอย่างใบปะหน้า -->
-        <div class="lg:col-span-1 min-h-screen">
-            <h2 class="text-xl font-semibold text-gray-700 mb-4">ตัวอย่างใบปะหน้า</h2>
-            <div id="preview-container" class="sticky top-4 bg-gray-50 p-4 rounded-xl shadow-inner max-h-[90vh] overflow-y-auto">
-                <div id="shipping-label-preview" class="w-[8cm] min-h-[12cm] bg-white border border-gray-400 p-2 shadow-xl mx-auto transform scale-100 origin-top">
-                    <div class="text-center mb-1">
-                        <p class="text-[0.7rem] font-bold">ใบปะหน้าสำหรับจัดส่งสินค้า (กรุณาแสดงรหัสนี้)</p>
-                        <div id="cod-box" class="border-2 border-red-500 text-red-600 font-extrabold text-lg p-1 rounded-lg mt-1 hidden">
-                            COD: <span id="preview-cod-amount">0.00</span> บาท
-                        </div>
-                    </div>
-                    
-                    <div class="border-t border-b border-gray-700 py-1 mb-1">
-                        <p class="text-[0.6rem] font-bold">จาก: (SENDER)</p>
-                        <p id="preview-sender-name" class="text-[0.7rem] font-bold"></p>
-                        <p id="preview-sender-address" class="text-[0.6rem] leading-tight"></p>
-                        <p id="preview-sender-phone" class="text-[0.6rem] font-medium"></p>
-                    </div>
-
-                    <div class="border-b border-gray-700 py-1 mb-1">
-                        <p class="text-[0.6rem] font-bold">ถึง: (RECIPIENT)</p>
-                        <p id="preview-recipient-name" class="text-[0.8rem] font-extrabold text-indigo-800"></p>
-                        <p id="preview-recipient-address" class="text-[0.7rem] leading-tight"></p>
-                        <p id="preview-recipient-full-location" class="text-[0.7rem] font-semibold"></p>
-                        <p id="preview-recipient-phone" class="text-[0.7rem] font-medium"></p>
-                        <div class="text-center mt-1">
-                            <p class="text-2xl font-black text-gray-800" id="preview-zipcode-large"></p>
-                        </div>
-                    </div>
-                    
-                    <div class="text-xs text-center border-b border-gray-700 py-1">
-                        <p id="preview-product-name" class="text-xs font-semibold text-gray-600">สินค้า: ไม่ระบุ</p>
-                    </div>
-
-                    <div class="text-center pt-2">
-                        <!-- Placeholder สำหรับ Barcode/Tracking number -->
-                        <div class="bg-gray-200 h-6 w-full flex items-center justify-center text-[0.6rem] font-mono border border-gray-400">
-                            *1234567890123* (Tracking Placeholder)
-                        </div>
-                    </div>
-
+        
+        <!-- ส่วนแสดงผล (Label Preview) -->
+        <div class="lg:w-1/2 w-full flex justify-center items-start lg:pt-6">
+            <div id="label-container" class="transform scale-90 lg:scale-100 origin-top-left" style="width: 80mm;">
+                <!-- ใบปะหน้าจะถูกสร้างขึ้นในนี้ -->
+                <div id="shipping-label-preview" class="shipping-label border border-gray-300 rounded-md">
+                    <!-- เนื้อหาจะถูกสร้างโดยฟังก์ชัน renderLabel -->
                 </div>
             </div>
         </div>
     </div>
-    
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { 
-            getFirestore, 
-            doc, 
-            setDoc, 
-            onSnapshot, 
-            collection, 
-            query, 
-            orderBy,
-            serverTimestamp,
-            writeBatch,
-            getDocs
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // --- Global Variables (Canvas Environment) ---
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // --- Firebase Setup ---
+        setLogLevel('error');
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-        let app;
-        let db;
-        let auth;
-        let userId = null;
-        let isAuthReady = false;
+        let app, db, auth, userId;
 
-        // ตัวแปรสำหรับเก็บข้อมูลรหัสไปรษณีย์ที่โหลดมาจาก Firestore (ใหม่)
-        let zipCodeData = [];
-
-        // --- Utility Functions ---
-
-        /** แสดงข้อความแจ้งเตือนที่มุมบนขวา */
-        function showMessage(message, type = 'info') {
-            const box = document.getElementById('message-box');
-            const color = type === 'success' ? 'bg-emerald-500' : type === 'error' ? 'bg-red-500' : 'bg-indigo-500';
-            const html = `
-                <div class="${color} text-white px-4 py-3 rounded-lg shadow-xl text-sm opacity-0 transition-opacity duration-300 transform translate-x-4">
-                    ${message}
-                </div>
-            `;
-            box.insertAdjacentHTML('beforeend', html);
-            const newItem = box.lastElementChild;
-            setTimeout(() => newItem.classList.remove('opacity-0', 'translate-x-4'), 10);
+        if (Object.keys(firebaseConfig).length > 0) {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
             
-            setTimeout(() => {
-                newItem.classList.add('opacity-0', 'translate-x-4');
-                newItem.addEventListener('transitionend', () => newItem.remove());
-            }, 5000);
+            // Authentication
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    console.log("Firebase signed in. User ID:", userId);
+                    await loadFormData();
+                    renderLabel();
+                } else {
+                    console.log("Firebase signing in anonymously...");
+                    if (initialAuthToken) {
+                        try {
+                            await signInWithCustomToken(auth, initialAuthToken);
+                        } catch (error) {
+                            console.error("Custom token sign-in failed:", error);
+                            await signInAnonymously(auth);
+                        }
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                }
+            });
         }
 
-        /** ดึงข้อมูลจากฟอร์มทั้งหมด */
-        function getFormData() {
-            const data = {
+        // --- Global Data and Utility Functions ---
+        window.zipCodeData = []; // Array to hold all zip code objects
+        window.zipCodeLookup = new Map(); // Map for fast lookup (Key: province|district|subdistrict -> Value: zipcode)
+
+        window.showMessage = (message, type = 'info') => {
+            const box = document.getElementById('message-box');
+            box.textContent = message;
+            box.className = 'p-3 mb-4 rounded-lg text-sm transition-all duration-300'; // Reset classes
+            box.classList.remove('hidden');
+            
+            if (type === 'success') {
+                box.classList.add('bg-green-100', 'text-green-800');
+            } else if (type === 'error') {
+                box.classList.add('bg-red-100', 'text-red-800');
+            } else {
+                box.classList.add('bg-blue-100', 'text-blue-800');
+            }
+
+            // Hide after 5 seconds
+            setTimeout(() => {
+                box.classList.add('hidden');
+            }, 5000);
+        };
+        
+        // --- Form Data Handling ---
+
+        window.getFormData = () => {
+            return {
                 sender: {
-                    name: document.getElementById('sender-name').value.trim(),
-                    address: document.getElementById('sender-address').value.trim(),
-                    zipcode: document.getElementById('sender-zipcode').value.trim(),
-                    phone: document.getElementById('sender-phone').value.trim(),
+                    name: document.getElementById('sender_name')?.value || '',
+                    phone: document.getElementById('sender_phone')?.value || '',
+                    address: document.getElementById('sender_address')?.value || '',
+                    province: document.getElementById('sender_province')?.value || '',
+                    district: document.getElementById('sender_district')?.value || '',
+                    subdistrict: document.getElementById('sender_subdistrict')?.value || '',
+                    zipcode: document.getElementById('sender_zipcode')?.value || '',
                 },
                 recipient: {
-                    name: document.getElementById('recipient-name').value.trim(),
-                    address: document.getElementById('recipient-address').value.trim(),
-                    district: document.getElementById('recipient-district').value.trim(),
-                    province: document.getElementById('recipient-province').value.trim(),
-                    zipcode: document.getElementById('recipient-zipcode').value.trim(),
-                    phone: document.getElementById('recipient-phone').value.trim(),
+                    name: document.getElementById('recipient_name')?.value || '',
+                    phone: document.getElementById('recipient_phone')?.value || '',
+                    address: document.getElementById('recipient_address')?.value || '',
+                    province: document.getElementById('recipient_province')?.value || '',
+                    district: document.getElementById('recipient_district')?.value || '',
+                    subdistrict: document.getElementById('recipient_subdistrict')?.value || '',
+                    zipcode: document.getElementById('recipient_zipcode')?.value || '',
                 },
-                product: {
-                    name: document.getElementById('product-name').value.trim(),
-                    cod: parseFloat(document.getElementById('cod-amount').value.trim() || 0),
+                package: {
+                    tracking_number: document.getElementById('tracking_number')?.value || '',
+                    cod_amount: document.getElementById('cod_amount')?.value || 0,
                 }
             };
+        };
+
+        const formInputs = document.querySelectorAll('#sender-form input, #sender-form textarea, #recipient-form input, #recipient-form textarea');
+        formInputs.forEach(input => {
+            input.addEventListener('input', () => {
+                renderLabel();
+                saveFormData();
+            });
+        });
+
+        // Save data to Firestore
+        async function saveFormData() {
+            if (!db || !userId) return;
+            try {
+                const data = getFormData();
+                const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/data`, 'shipping_label_form');
+                await setDoc(userDocRef, data, { merge: true });
+                console.log("Form data saved to Firestore.");
+            } catch (error) {
+                console.error("Error saving form data:", error);
+            }
+        }
+
+        // Load data from Firestore
+        async function loadFormData() {
+            if (!db || !userId) return;
+            try {
+                const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/data`, 'shipping_label_form');
+                const docSnap = await getDoc(userDocRef);
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    console.log("Form data loaded from Firestore:", data);
+                    
+                    // Apply loaded data to form fields
+                    ['sender', 'recipient'].forEach(type => {
+                        if (data[type]) {
+                            for (const key in data[type]) {
+                                const element = document.getElementById(`${type}_${key}`);
+                                if (element && data[type][key] !== undefined) {
+                                    element.value = data[type][key];
+                                }
+                            }
+                        }
+                    });
+                    if (data.package) {
+                         document.getElementById('tracking_number').value = data.package.tracking_number || '';
+                         document.getElementById('cod_amount').value = data.package.cod_amount || 0;
+                    }
+                    renderLabel();
+                }
+            } catch (error) {
+                console.error("Error loading form data:", error);
+            }
+        }
+
+        // --- Label Rendering ---
+
+        window.renderLabel = () => {
+            const data = getFormData();
+            const labelContainer = document.getElementById('shipping-label-preview');
+            const codDisplay = data.package.cod_amount > 0 ? `<div class="bg-red-500 text-white text-center font-bold text-lg p-1 mt-2">เก็บเงินปลายทาง ${parseFloat(data.package.cod_amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")} บาท</div>` : '';
+            const recipientFullAddress = [
+                data.recipient.address,
+                data.recipient.subdistrict,
+                data.recipient.district,
+                data.recipient.province,
+                data.recipient.zipcode
+            ].filter(Boolean).join(' ');
+
+            const senderFullAddress = [
+                data.sender.address,
+                data.sender.subdistrict,
+                data.sender.district,
+                data.sender.province,
+                data.sender.zipcode
+            ].filter(Boolean).join(' ');
+
+            labelContainer.innerHTML = `
+                <div class="flex flex-col h-full">
+                    <!-- ส่วนบน: หมายเลขพัสดุ / COD -->
+                    <div class="flex justify-between items-center border-b border-dashed pb-2">
+                        <div class="text-xs font-semibold">เลขที่พัสดุ:</div>
+                        <div class="text-sm font-bold text-gray-800">${data.package.tracking_number}</div>
+                    </div>
+
+                    <!-- ข้อมูลผู้รับ -->
+                    <div class="mt-3 border-b border-dashed pb-3 flex-grow">
+                        <div class="text-xs font-bold text-red-600 mb-1">ผู้รับ (RECIPIENT)</div>
+                        <div class="font-bold text-lg leading-tight">${data.recipient.name}</div>
+                        <div class="text-sm mt-1">โทร: ${data.recipient.phone}</div>
+                        <div class="text-sm mt-1">${recipientFullAddress}</div>
+                        <div class="text-4xl font-extrabold text-center mt-3 p-1 border-2 border-black rounded-lg bg-gray-100">${data.recipient.zipcode}</div>
+                    </div>
+
+                    <!-- ข้อมูลผู้ส่ง -->
+                    <div class="mt-3">
+                        <div class="text-xs font-bold text-gray-600 mb-1">ผู้ส่ง (SENDER)</div>
+                        <div class="text-sm font-semibold leading-tight">${data.sender.name}</div>
+                        <div class="text-xs">โทร: ${data.sender.phone}</div>
+                        <div class="text-xs">${senderFullAddress}</div>
+                    </div>
+
+                    ${codDisplay}
+                </div>
+            `;
+        };
+
+        // --- Zip Code Data Import and Lookup (New Logic) ---
+
+        /**
+         * Parses CSV text into an array of objects.
+         * Assumes the first row is the header.
+         * @param {string} csvText - The raw CSV content.
+         * @returns {Array<Object>} Array of objects.
+         */
+        function parseCSV(csvText) {
+            const lines = csvText.split('\n').filter(line => line.trim() !== '');
+            if (lines.length === 0) return [];
+
+            const headers = lines[0].split(',').map(h => h.trim());
+            const data = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',').map(v => v.trim());
+                if (values.length === headers.length) {
+                    let obj = {};
+                    headers.forEach((header, index) => {
+                        obj[header] = values[index];
+                    });
+                    data.push(obj);
+                }
+            }
             return data;
         }
 
-        /** อัปเดตพรีวิวใบปะหน้า */
-        function updatePreview(data) {
-            // ข้อมูลผู้ส่ง
-            document.getElementById('preview-sender-name').textContent = data.sender.name || 'ชื่อผู้ส่ง';
-            document.getElementById('preview-sender-address').textContent = data.sender.address + ' ' + (data.sender.zipcode || '');
-            document.getElementById('preview-sender-phone').textContent = data.sender.phone || 'โทร: XXX-XXX-XXXX';
 
-            // ข้อมูลผู้รับ
-            document.getElementById('preview-recipient-name').textContent = data.recipient.name || 'ชื่อผู้รับ';
-            document.getElementById('preview-recipient-address').textContent = data.recipient.address || 'บ้านเลขที่/ถนน/แขวง';
-            
-            const fullLocation = (data.recipient.district ? data.recipient.district : 'อำเภอ/เขต') + 
-                                 ' ' + 
-                                 (data.recipient.province ? data.recipient.province : 'จังหวัด');
-                                 
-            document.getElementById('preview-recipient-full-location').textContent = fullLocation;
-            document.getElementById('preview-recipient-phone').textContent = data.recipient.phone || 'โทร: XXX-XXX-XXXX';
-            
-            const largeZipcode = data.recipient.zipcode || 'XXXXX';
-            document.getElementById('preview-zipcode-large').textContent = largeZipcode;
-
-            // ข้อมูลสินค้า/COD
-            const codBox = document.getElementById('cod-box');
-            const codAmount = data.product.cod;
-            document.getElementById('preview-cod-amount').textContent = codAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 });
-            
-            if (codAmount > 0) {
-                codBox.classList.remove('hidden');
-            } else {
-                codBox.classList.add('hidden');
-            }
-
-            document.getElementById('preview-product-name').textContent = `สินค้า: ${data.product.name || 'ไม่ระบุ'}`;
-        }
-        
-        /** ฟังก์ชันสำหรับอัปเดตค่าจาก Firestore กลับเข้าสู่ฟอร์ม */
-        function updateFormFields(data) {
-            document.getElementById('sender-name').value = data.sender?.name || '';
-            document.getElementById('sender-address').value = data.sender?.address || '';
-            document.getElementById('sender-zipcode').value = data.sender?.zipcode || '';
-            document.getElementById('sender-phone').value = data.sender?.phone || '';
-
-            document.getElementById('recipient-name').value = data.recipient?.name || '';
-            document.getElementById('recipient-address').value = data.recipient?.address || '';
-            document.getElementById('recipient-district').value = data.recipient?.district || '';
-            document.getElementById('recipient-province').value = data.recipient?.province || '';
-            document.getElementById('recipient-zipcode').value = data.recipient?.zipcode || '';
-            document.getElementById('recipient-phone').value = data.recipient?.phone || '';
-            
-            document.getElementById('product-name').value = data.product?.name || '';
-            document.getElementById('cod-amount').value = data.product?.cod || 0;
-            
-            updatePreview(data);
-        }
-
-        /** ค้นหาข้อมูลอำเภอ/จังหวัด จากรหัสไปรษณีย์ (ใช้ข้อมูลที่โหลดไว้) */
-        function lookupZipcode(zipcode) {
-            if (!zipcode || zipcode.length !== 5) return null;
-            
-            // ค้นหาข้อมูลที่ตรงกัน (ใช้ข้อมูลตัวแรกที่พบ)
-            const match = zipCodeData.find(item => item.zipcode === zipcode);
-            
-            if (match) {
-                // ข้อมูลใน CSV มี: province,district,subdistrict,zipcode
-                // เราต้องการเพียง province และ district (อำเภอ) 
-                return {
-                    district: match.district, // อำเภอ/เขต
-                    province: match.province   // จังหวัด
-                };
-            }
-            return null;
-        }
-
-        /** ตรวจสอบรหัสไปรษณีย์ผู้รับและเติมข้อมูลจังหวัด/อำเภอ */
-        function handleRecipientZipcodeInput() {
-            const zipcodeField = document.getElementById('recipient-zipcode');
-            const districtField = document.getElementById('recipient-district');
-            const provinceField = document.getElementById('recipient-province');
-            const zipcode = zipcodeField.value.trim();
-
-            if (zipcode.length === 5) {
-                const locationData = lookupZipcode(zipcode);
-                if (locationData) {
-                    // เติมข้อมูลลงในฟอร์ม ถ้ายังว่างอยู่
-                    if (!districtField.value.trim()) {
-                        districtField.value = locationData.district;
-                    }
-                    if (!provinceField.value.trim()) {
-                        provinceField.value = locationData.province;
-                    }
-                    showMessage(`พบข้อมูล: ${locationData.district}, ${locationData.province}`, 'info');
-                } else if (zipCodeData.length > 0) {
-                    showMessage('ไม่พบข้อมูลรหัสไปรษณีย์นี้ในฐานข้อมูล', 'info');
-                }
-            }
-        }
-        
-        // --- API & Firestore Functions ---
-
-        /** นำเข้าข้อมูลรหัสไปรษณีย์จาก CSV เข้าสู่ Firestore (ใหม่) */
-        window.importZipCodes = async function() {
-            if (!isAuthReady || !userId) {
-                showMessage('ระบบยังไม่พร้อมใช้งาน โปรดรอสักครู่และลองอีกครั้ง', 'error');
-                return;
-            }
-
-            const fileInput = document.getElementById('zipcode-csv-file');
-            const importButton = document.getElementById('import-zipcodes-button');
-            const statusText = document.getElementById('zipcode-status');
-            const file = fileInput.files[0];
-            
-            if (!file) {
-                showMessage('กรุณาเลือกไฟล์ CSV ก่อน', 'error');
-                return;
-            }
-
-            importButton.disabled = true;
-            statusText.textContent = 'กำลังอ่านไฟล์...';
+        /**
+         * Imports zip code data from the uploaded CSV file.
+         */
+        window.importZipCodeData = async () => {
+            const button = document.getElementById('importZipCodeButton');
+            button.disabled = true;
+            button.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>กำลังนำเข้า...`;
 
             try {
-                const fileText = await file.text();
-                const lines = fileText.split('\n').filter(line => line.trim() !== '');
+                // 1. Check for file access
+                if (typeof __files === 'undefined' || !Array.isArray(__files)) {
+                    throw new Error("ไม่สามารถเข้าถึงรายการไฟล์ได้ (Code environment issue).");
+                }
+
+                // 2. Find the correct CSV file
+                const fileName = 'Thailand Zip Code - Thailand Zip Code.csv';
+                const csvFile = __files.find(f => f.fileName === fileName);
+
+                if (!csvFile) {
+                    throw new Error(`ไม่พบไฟล์ '${fileName}' กรุณาตรวจสอบว่าได้อัปโหลดไฟล์ถูกต้อง`);
+                }
+
+                // 3. Fetch file content
+                const csvContent = await getContentFetch(csvFile.contentFetchId);
+
+                if (!csvContent || csvContent.length < 100) { // Check for minimal content
+                    throw new Error("ไม่สามารถอ่านเนื้อหาของไฟล์ CSV ได้ หรือไฟล์มีข้อมูลน้อยเกินไป");
+                }
+
+                // 4. Parse and store data
+                const parsedData = parseCSV(csvContent);
+                window.zipCodeData = parsedData;
                 
-                // คาดว่าบรรทัดแรกเป็น Header: province,district,subdistrict,zipcode,latitude,longitude
-                const headers = lines[0].trim().split(',').map(h => h.trim().toLowerCase());
-                const dataToImport = [];
-
-                for (let i = 1; i < lines.length; i++) {
-                    const values = lines[i].trim().split(',');
-                    if (values.length >= 4) { // ตรวจสอบว่ามีข้อมูลพื้นฐานครบถ้วน
-                        const item = {};
-                        headers.forEach((header, index) => {
-                            item[header] = values[index] ? values[index].trim() : '';
-                        });
-
-                        // สร้าง ID สำหรับ Doc โดยใช้รหัสไปรษณีย์และตำบลเพื่อไม่ให้ซ้ำกัน
-                        const docId = `${item.zipcode}-${item.subdistrict}`;
-                        dataToImport.push({ docId, data: item });
+                // Create a lookup map for fast auto-completion
+                window.zipCodeLookup.clear();
+                window.zipCodeData.forEach(row => {
+                    // Use a pipe '|' delimiter for a unique key: Province|District|Subdistrict
+                    const key = `${row.province.trim()}|${row.district.trim()}|${row.subdistrict.trim()}`;
+                    if (row.zipcode) {
+                         // Only store if zipcode exists
+                         window.zipCodeLookup.set(key, row.zipcode.trim());
                     }
-                }
-                
-                if (dataToImport.length === 0) {
-                    showMessage('ไม่พบข้อมูลที่ถูกต้องในไฟล์ CSV', 'error');
-                    importButton.disabled = false;
-                    statusText.textContent = '';
-                    return;
-                }
-
-                statusText.textContent = `พบ ${dataToImport.length} รายการ. กำลังบันทึกข้อมูล...`;
-
-                const batch = writeBatch(db);
-                const collectionPath = `artifacts/${appId}/public/data/zipcodes`;
-                const zipcodesCollection = collection(db, collectionPath);
-                
-                let processedCount = 0;
-                const batchSize = 499; // จำกัด Batch size ให้อยู่ภายใต้ขีดจำกัดของ Firestore
-
-                for (let i = 0; i < dataToImport.length; i++) {
-                    const item = dataToImport[i];
-                    const docRef = doc(zipcodesCollection, item.docId);
-                    // บันทึกข้อมูล (SetDoc จะเขียนทับข้อมูลเดิมถ้า DocId ซ้ำ)
-                    batch.set(docRef, item.data);
-                    
-                    processedCount++;
-                    
-                    if (processedCount % batchSize === 0 || i === dataToImport.length - 1) {
-                        await batch.commit();
-                        statusText.textContent = `บันทึกข้อมูลไปแล้ว ${processedCount} รายการ...`;
-                        // เริ่ม Batch ใหม่
-                        if (i !== dataToImport.length - 1) {
-                            batch = writeBatch(db);
-                        }
-                    }
-                }
-
-                showMessage(`นำเข้าข้อมูลรหัสไปรษณีย์สำเร็จ ${processedCount} รายการ`, 'success');
-                statusText.textContent = `นำเข้าข้อมูลรหัสไปรษณีย์สำเร็จ ${processedCount} รายการแล้ว`;
-                // โหลดข้อมูลเข้าสู่ตัวแปร zipCodeData ทันทีหลังการนำเข้า
-                await loadZipCodeData();
-
-            } catch (error) {
-                console.error("Import Zipcodes Error:", error);
-                showMessage('เกิดข้อผิดพลาดในการนำเข้าข้อมูล: ' + error.message, 'error');
-                statusText.textContent = 'เกิดข้อผิดพลาดในการนำเข้าข้อมูล';
-            } finally {
-                importButton.disabled = false;
-            }
-        }
-        
-        /** โหลดข้อมูลรหัสไปรษณีย์ทั้งหมดจาก Firestore (ใหม่) */
-        async function loadZipCodeData() {
-            if (!db) return;
-            
-            const collectionPath = `artifacts/${appId}/public/data/zipcodes`;
-            const statusText = document.getElementById('zipcode-status');
-            
-            try {
-                statusText.textContent = 'กำลังโหลดข้อมูลรหัสไปรษณีย์...';
-                
-                const q = query(collection(db, collectionPath));
-                const snapshot = await getDocs(q);
-                
-                zipCodeData = [];
-                snapshot.forEach(doc => {
-                    zipCodeData.push(doc.data());
                 });
 
-                if (zipCodeData.length > 0) {
-                    statusText.textContent = `โหลดข้อมูลรหัสไปรษณีย์แล้ว ${zipCodeData.length} รายการ`;
-                    showMessage(`โหลดข้อมูลรหัสไปรษณีย์สำเร็จ: ${zipCodeData.length} รายการ`, 'info');
-                } else {
-                    statusText.textContent = 'ไม่พบข้อมูลรหัสไปรษณีย์ในฐานข้อมูล';
-                }
+                showMessage(`นำเข้าข้อมูลรหัสไปรษณีย์สำเร็จ! (${window.zipCodeData.length} รายการ)`, 'success');
 
             } catch (error) {
-                console.error("Load Zipcode Data Error:", error);
-                statusText.textContent = 'เกิดข้อผิดพลาดในการโหลดข้อมูลรหัสไปรษณีย์';
+                console.error("Import Error:", error);
+                showMessage(`นำเข้าข้อมูลไม่สำเร็จ: ${error.message || error}`, 'error');
+            } finally {
+                button.disabled = false;
+                button.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3.293 8.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L7 7.414V14a1 1 0 11-2 0V7.414L3.707 8.707a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>นำเข้าข้อมูลรหัสไปรษณีย์`;
             }
-        }
+        };
 
-        /** บันทึกข้อมูลฟอร์มลง Firestore */
-        window.saveFormData = async function() {
-            if (!isAuthReady || !userId) {
-                showMessage('ระบบยังไม่พร้อมใช้งาน โปรดรอสักครู่', 'error');
+        /**
+         * Attempts to auto-fill the zip code based on province, district, and subdistrict.
+         * @param {string} prefix - 'sender' or 'recipient'
+         */
+        window.handleAddressInput = (prefix) => {
+            if (window.zipCodeLookup.size === 0) {
+                // showMessage('กรุณานำเข้าข้อมูลรหัสไปรษณีย์ก่อนใช้งานฟังก์ชันนี้', 'info');
+                return; // Do nothing if data is not loaded
+            }
+
+            const province = document.getElementById(`${prefix}_province`)?.value.trim();
+            const district = document.getElementById(`${prefix}_district`)?.value.trim();
+            const subdistrict = document.getElementById(`${prefix}_subdistrict`)?.value.trim();
+            const zipCodeField = document.getElementById(`${prefix}_zipcode`);
+
+            if (!province || !district || !subdistrict) {
                 return;
             }
 
-            const data = getFormData();
-            const docRef = doc(db, `artifacts/${appId}/users/${userId}/last_label`, 'data');
-            const saveButton = document.getElementById('save-data-button');
-            saveButton.disabled = true;
-            saveButton.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>กำลังบันทึก...`;
+            const searchKey = `${province}|${district}|${subdistrict}`;
+            const foundZipCode = window.zipCodeLookup.get(searchKey);
 
-            try {
-                await setDoc(docRef, { 
-                    ...data,
-                    updatedAt: serverTimestamp() // ใช้ timestamp ของเซิร์ฟเวอร์
-                });
-                showMessage('บันทึกข้อมูลสำเร็จ!', 'success');
-            } catch (error) {
-                console.error("Save Data Error:", error);
-                showMessage('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + error.message, 'error');
-            } finally {
-                saveButton.disabled = false;
-                saveButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 mr-2"><path d="M12 9a3.75 3.75 0 1 0 0 7.5A3.75 3.75 0 0 0 12 9Z" /><path fill-rule="evenodd" d="M9.344 3.071A48.768 48.768 0 0 1 12 3c2.433 0 4.852.198 7.21.572.118.028.237.06.355.093m-4.34-2.864A48.196 48.196 0 0 0 12 1c-2.316 0-4.63.14-6.895.424M4.68 4.992c-.389 0-.769.043-1.144.127C1.494 5.485 0 6.696 0 8.042V20.25c0 1.15 1.118 2.053 2.5 2.234 1.512.19 3.125.293 4.75.318A48.12 48.12 0 0 0 12 23.25c1.876 0 3.744-.093 5.589-.274 1.625-.025 3.238-.128 4.75-.318 1.382-.181 2.5-.595 2.5-1.744V8.042c0-1.346-1.494-2.557-3.535-2.922a47.452 47.452 0 0 0-1.144-.127C19.121 4.949 15.556 3 12 3s-7.121 1.949-8.498 3.008ZM12 16.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Z" clip-rule="evenodd" /></svg>บันทึกข้อมูล`;
+            if (foundZipCode) {
+                // Found a match, update the zipcode field
+                zipCodeField.value = foundZipCode;
+                renderLabel();
             }
-        }
-
-        /** ติดตามการเปลี่ยนแปลงข้อมูลฟอร์มล่าสุดจาก Firestore */
-        function setupDataListener() {
-            if (!db || !userId) return;
-
-            const docRef = doc(db, `artifacts/${appId}/users/${userId}/last_label`, 'data');
-            
-            // ใช้ onSnapshot เพื่อติดตามข้อมูลแบบเรียลไทม์
-            onSnapshot(docRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    // อัปเดตฟอร์มและพรีวิวด้วยข้อมูลที่โหลดมา
-                    updateFormFields(data);
-                    showMessage('โหลดข้อมูลล่าสุดสำเร็จ', 'info');
-                } else {
-                    // หากไม่มีข้อมูล ให้ใช้ข้อมูลเริ่มต้นจากฟอร์มปัจจุบัน
-                    const initialData = getFormData();
-                    updatePreview(initialData);
-                }
-            }, (error) => {
-                console.error("Firestore Listener Error:", error);
-                // ไม่แสดงข้อความแจ้งเตือนต่อผู้ใช้ แต่บันทึกข้อผิดพลาดในคอนโซล
-            });
-        }
+        };
         
-        /** ฟังก์ชันดาวน์โหลด PDF */
-        window.downloadAsPDF = async function() {
-            const previewElement = document.getElementById('shipping-label-preview');
-            const downloadButton = document.getElementById('download-pdf-button');
-            
+        // --- PDF Download Function ---
+
+        window.downloadLabelPdf = async () => {
+            const downloadButton = document.getElementById('downloadPdfButton');
             downloadButton.disabled = true;
-            downloadButton.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>กำลังสร้าง PDF...`;
+            downloadButton.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>กำลังสร้าง PDF...`;
 
             try {
-                // ต้องปรับ Scale เพื่อให้ภาพที่ได้มีความคมชัดสูง
-                const canvas = await html2canvas(previewElement, {
-                    scale: 3, // เพิ่ม Scale เพื่อความคมชัด
-                    useCORS: true,
-                    allowTaint: true,
-                    backgroundColor: '#ffffff'
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: [80, 100] // 80mm x 100mm label size
                 });
 
-                const imgData = canvas.toDataURL('image/png');
-                const { jsPDF } = window.jspdf;
-                
-                // กำหนดขนาดหน้ากระดาษเป็น A6 (105mm x 148mm) หรือขนาดที่เหมาะสมกับการพิมพ์ใบปะหน้า
-                // ในที่นี้จะใช้ขนาด A7 (74x105 mm) ซึ่งใกล้เคียงกับขนาดใบปะหน้าเล็กๆ เพื่อให้พอดีกับกระดาษส่วนใหญ่
-                // แต่เนื่องจากตัว Preview เราใช้ 8cm x 12cm เราจะกำหนด PDF ให้พอดีกับขนาดนั้น
-                const pdfWidth = 80; // 8 cm = 80 mm
-                const pdfHeight = 120; // 12 cm = 120 mm
-                
-                const pdf = new jsPDF('p', 'mm', [pdfWidth, pdfHeight]);
+                // Load Sarabun font to support Thai characters
+                // Note: jspdf needs font data embedded, this is a simplified example
+                // In a real-world scenario, you would need to add the font using pdf.addFont().
+                // For demonstration, we'll rely on the default fonts which may not fully support Thai.
+                // We'll proceed with the screenshot approach using html2canvas.
 
-                // คำนวณอัตราส่วนเพื่อวางภาพให้เต็มหน้า PDF
-                const imgProps = pdf.getImageProperties(imgData);
-                const imgWidth = pdfWidth;
-                const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+                const input = document.getElementById('shipping-label-preview');
+                const canvas = await html2canvas(input, { scale: 3, useCORS: true });
+                const imgData = canvas.toDataURL('image/png');
+
+                const imgWidth = 80; // Target width in mm
+                const imgHeight = canvas.height * imgWidth / canvas.width; // Maintain aspect ratio
 
                 pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-
+                
                 const recipientName = getFormData().recipient.name || 'Shipping_Label';
                 pdf.save(`${recipientName}_${new Date().toISOString().slice(0, 10)}.pdf`);
                 
@@ -570,77 +508,16 @@
                 showMessage("เกิดข้อผิดพลาดในการสร้างไฟล์ PDF", 'error');
             } finally {
                 downloadButton.disabled = false;
-                downloadButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L10 11.586l1.293-1.293a1 1 0 111.414 1.414l-2 2a1 1 0 01-1.414 0l-2-2a1 1 0 010-1.414zM10 2a1 1 0 011 1v7a1 1 0 11-2 0V3a1 1 0 011-1z" clip-rule="evenodd" />
-                    </svg>ดาวน์โหลด PDF`;
+                downloadButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L10 11.586l1.293-1.293a1 1 0 111.414 1.414l-2 2a1 1 0 01-1.414 0l-2-2a1 1 0 010-1.414zM10 2a1 1 0 011 1v7a1 1 0 11-2 0V3a1 1 0 011-1z" clip-rule="evenodd" /></svg>ดาวน์โหลด PDF`;
             }
-        }
+        };
 
-        // --- Initialization ---
-
-        /** ฟังก์ชันสำหรับกำหนดค่าเริ่มต้นทั้งหมด */
-        async function initializeApp() {
-            try {
-                // 1. Initialize Firebase
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                
-                // 2. Authenticate User
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
-
-                // 3. Set Auth State Listener
-                onAuthStateChanged(auth, (user) => {
-                    if (user) {
-                        userId = user.uid;
-                        isAuthReady = true;
-                        
-                        // 4. Setup listeners after auth is ready
-                        setupDataListener();
-                        
-                        // 5. Load Zipcode Data
-                        loadZipCodeData();
-                        
-                    } else {
-                        userId = null;
-                        isAuthReady = false;
-                        showMessage('ไม่สามารถเข้าสู่ระบบผู้ใช้ได้', 'error');
-                    }
-                });
-                
-                // 6. Setup Event Listeners for form inputs
-                const forms = ['sender-form', 'recipient-form', 'product-form'];
-                forms.forEach(id => {
-                    const form = document.getElementById(id);
-                    if (form) {
-                        form.addEventListener('input', () => {
-                            const currentData = getFormData();
-                            updatePreview(currentData);
-                            
-                            // ตรวจสอบรหัสไปรษณีย์ผู้รับเพื่อเติมข้อมูล
-                            if (id === 'recipient-form') {
-                                handleRecipientZipcodeInput();
-                            }
-                        });
-                    }
-                });
-
-                // ตั้งค่าเริ่มต้นของ Preview ด้วยข้อมูลว่าง
-                updatePreview(getFormData());
-
-            } catch (error) {
-                console.error("App Initialization Error:", error);
-                showMessage(`เกิดข้อผิดพลาดในการเริ่มต้นแอป: ${error.message}`, 'error');
-            }
-        }
-
-        // เริ่มต้นแอปพลิเคชัน
-        initializeApp();
-
+        // Initial render and load data
+        window.addEventListener('load', () => {
+            renderLabel();
+            // Load form data handled by onAuthStateChanged after Firebase init
+        });
+        
     </script>
 </body>
 </html>
